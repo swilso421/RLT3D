@@ -5,7 +5,7 @@ from OpenGL.GLU import *
 
 class Cube:
 
-    def __init__(self, coords = (0, 0, 0), sideLength = 1.0, rotationAngle = 0, rotationVector = (0, 0, 0), wireFrame = False, color = (1.0, 1.0, 1.0)):
+    def __init__(self, coords = (0, 0, 0), sideLength = 1.0, rotationAngle = 0, rotationVector = (0, 1, 0), wireFrame = False, color = (1.0, 1.0, 1.0)):
 
         self._coords = coords
         self._sideLength = sideLength
@@ -102,7 +102,7 @@ class Cube:
 
 class Grid:
 
-    def __init__(self, coords = (0.0, 0.0, 0.0), rotationAngle = 0, rotationVector = (0, 0, 0), width = 10, length = 10, color = (1.0, 1.0, 1.0)):
+    def __init__(self, coords = (0.0, 0.0, 0.0), rotationAngle = 0, rotationVector = (0, 1, 0), width = 10, length = 10, color = (1.0, 1.0, 1.0)):
 
         self._coords = coords
         self._width = width
