@@ -76,9 +76,9 @@ while True:
     # angle += 1
     # gluLookAt(camX, 10.0, camZ, 0.0, 2.0, -10.0, 0, 1, 0)
 
-    # newPosition[1] = oldPosition[1] + 0.05
-    # mover.setPosition(newPosition)
-    # oldPosition = newPosition
+    newPosition[1] = oldPosition[1] + 0.05
+    mover.setPosition(newPosition)
+    oldPosition = newPosition
 
     renderScene()
     pygame.time.wait(10)
