@@ -145,6 +145,10 @@ class Grid:
         glEnd()
         glPopMatrix()
 
+    def setPosition(self, coords = (0.0, 0.0, 0.0)):
+        self._coords = coords
+        self._generateVertices()
+
     def setRotation(self, degrees, x, y, z):
         self._rotationAngle = degrees
         self._rotationVector = (x, y, z)
