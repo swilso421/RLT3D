@@ -7,6 +7,7 @@ print("Data is stored in a txt file where each line has a pair of coordinates, d
 print("Max distance in each dimension from previous point is 0.1")
 print("Domain of each dimension is (-5.0, 5.0)")
 print("WARNING!: This script does not validate input or handle errors")
+
 filename = raw_input("Name of data file: ")
 n = int(raw_input("Number of coordinate pairs to generate: "))
 
