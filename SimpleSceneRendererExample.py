@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import pygame
-from pygame.locals import *
 
-from ..OpenGLTools.GLRendering import SimpleSceneRenderer
-from ..OpenGLTools.Basic3DShapes import *
+from OpenGLTools.GLRendering import SimpleSceneRenderer
+from OpenGLTools.Basic3DShapes import *
 
 #eventLoop will be called each frame as the eventHandlerCallback from SimpleSceneRender
 #This allows it to be used for things like translating/rotating items or processing user input
