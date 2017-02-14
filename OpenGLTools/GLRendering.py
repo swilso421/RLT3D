@@ -39,9 +39,9 @@ class SimpleSceneRenderer:
 
         #Sets static camera viewpoint
         if cameraView == 'isometric':
-            glTranslatef(0.0, -5.0, -10.0)
             glRotatef(45, 0, 1, 0)
             glRotatef(45, 1, 0, 1)
+            glTranslatef(5.0, -5.0, -5.0)
         elif cameraView == 'zoomed-out':
             glTranslatef(0.0, 0.0, -10.0)
             glRotatef(0, 0, 0, 0)
