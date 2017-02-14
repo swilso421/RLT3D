@@ -5,7 +5,7 @@ import pygame
 from OpenGLTools.GLRendering import SimpleSceneRenderer
 from OpenGLTools.Basic3DShapes import *
 
-test_data = open("Preprocessing/test_data_2000.txt", "r")
+test_data = open("Preprocessing/test_data.txt", "r")
 
 grid = Grid(width = 10, length = 10, color = (0.0, 1.0, 0.0))
 box = Cube(sideLength = 0.5)
