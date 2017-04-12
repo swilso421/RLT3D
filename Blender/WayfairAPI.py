@@ -73,9 +73,9 @@ def downloadAllModels():
         response = requests.get(modelURLs[model], headers = HEADERS, stream = True)
 
         if response.status_code == 200:
-            with open('/home/wilson/PyScripts/models/{}.fbx'.format(model), 'w+') as handle:
-                for bytes in tqdm(response.iter_content()):
-                    handle.write(bytes)
+            with open('/home/wilson/PyScripts/models/{}.fbx'.format(model), 'wb+') as handle:
+                for data in tqdm(response.iter_content()):
+                    handle.write(data)
 
 def main():
     downloadAllModels()
