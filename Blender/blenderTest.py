@@ -4,8 +4,8 @@ import SceneBuilderAPI as sbapi
 
 sbapi.loadModel('models/THRE2068.fbx', 'THRE2068')
 
-sbapi.renderImage()
+sbapi.renderImage('no-correction.png')
 
 sbapi.correctLocalView()
 
-sbapi.renderImage()
+sbapi.renderImage('with-correction.png')
