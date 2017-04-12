@@ -1,8 +1,10 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 
 import requests
+import os.path
 from tqdm import tqdm
 
+#Global variables for various components of the api
 BASE_URL = "https://www.wayfair.com/v/api/three_d_model/"
 MODEL_ENDPOINT = "models?"
 PRODUCT_ENDPOINT = "product_information?"
@@ -11,7 +13,9 @@ CLASS_TAG = "class_id={}"
 PAGE_TAG = "page={}"
 ALL_PAGES_TAG = "page=-1"
 TAG_COMBINE = "&"
+BAUTH = ('tug59414@temple.edu', '58dd10632f4a7')
 
+#Standard header group that (usually) allows access to the API
 HEADERS = {
     'Accept': "*/*",
     'Accept-Encoding': "gzip, deflate",
@@ -22,12 +26,35 @@ HEADERS = {
     'User-Agent': "Mozilla/5.0"
     }
 
-def getJSON(url):
-    return requests.get(url, headers = HEADERS).json()
+#Attempts to get a JSON object out of the response
+#If the request was flagged as a bot this will fail, and this function will return a boolean indicating this
+def getJSON(response):
+    try:
+        data = response.json()
+        return True, data
+    except:
+        return False, None
 
+#Downloads the fbx file associated with the given SKU if it exists
+#File will be downloaded to the given directory path with the filename being the SKU given
+#DevNote: not currently finished, want to finish testing current download method
 def fetchModel(sku, directory):
-    return None
+    
+    #Prepare the appropriate url
+    url = BASE_URL + MODEL_ENDPOINT + SKU_TAG.format(sku)
+    
+    #Prepare the filepath that will be used later
+    filepath = os.path.join(directory, '{}.fbx'.format(sku))
+    
+    response = requests.get(url, headers = HEADERS)
+    
+    success, data = getJSON(response)
+    
+    if not successful:
+        return False, 'bad response'
 
+#OUTDATED: Requires rewrite to utilize fetchModel()
+#Downloads ALL fbx model files from the Wayfair database. This operation will take a couple HOURS to do
 def downloadAllModels():
 
     url = BASE_URL + MODEL_ENDPOINT + ALL_PAGES_TAG
@@ -38,16 +65,10 @@ def downloadAllModels():
 
     print('Converting response to JSON...')
 
-    try:
-
-        data = response.json()
-
-    except:
-
-        print('Could not convert respone to JSON!')
-        print(response)
-        print(response.content)
-        return
+    successful, data = getJSON(response)
+    
+    if not successful:
+        return False, 'bad response'
 
     modelURLs = {}
 
@@ -77,6 +98,8 @@ def downloadAllModels():
                 for data in tqdm(response.iter_content()):
                     handle.write(data)
 
+#If this API is run directly, it downloads all of the models
+#Just here during testing
 def main():
     downloadAllModels()
 
