@@ -80,7 +80,7 @@ def loadModel(filepath, name, position = (0.0, 0.0, 0.0)):
 
 #Loads all models from the 'object' tag of the loaded XML document
 def loadModelsFromXML():
-    if !isXMLLoaded:
+    if not isXMLLoaded:
         print("Warning! No XML file has been loaded! Please make a call to loadXML() first!")
         return
 
@@ -95,7 +95,7 @@ def loadModelsFromXML():
 
 #Renders images from the 'camera' tags of the loaded XML document
 def renderImagesFromXML():
-    if !isXMLLoaded:
+    if not isXMLLoaded:
         print("Warning! No XML file has been loaded! Please make a call to loadXML() first!")
         return
 
