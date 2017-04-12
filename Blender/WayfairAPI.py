@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.5
 
 import requests
+from tqdm import tqdm
 
 BASE_URL = "https://www.wayfair.com/v/api/three_d_model/"
 MODEL_ENDPOINT = "models?"
@@ -24,11 +25,60 @@ HEADERS = {
 def getJSON(url):
     return requests.get(url, headers = HEADERS).json()
 
-def fetchModel
+def fetchModel(sku, directory):
+    return None
 
-for entry in data:
-    if 'fbx' in data[entry]:
-        skus.append(entry)
+def downloadAllModels():
 
-print(len(skus))
-print(skus)
+    url = BASE_URL + MODEL_ENDPOINT + ALL_PAGES_TAG
+
+    print('Requesting model URLs...')
+
+    response = requests.get(url, headers = HEADERS)
+
+    print('Converting response to JSON...')
+
+    try:
+
+        data = response.json()
+
+    except:
+
+        print('Could not convert respone to JSON!')
+        print(response)
+        print(response.content)
+        return
+
+    modelURLs = {}
+
+    print('Parsing model URLs...')
+
+    for entry in data:
+        if 'fbx' in data[entry]:
+            modelURLs[entry] = data[entry]['fbx']
+
+    del response, data
+
+    modelCount = len(modelURLs)
+    modelNumber = 1
+
+    count = 0
+
+    print('Downloading models...')
+
+    for model in modelURLs:
+        print('Downloading model {current} of {total}...'.format(current = modelNumber, total = modelCount))
+        modelNumber += 1
+
+        response = requests.get(modelURLs[model], headers = HEADERS, stream = True)
+
+        if response.status_code == 200:
+            with open('/home/wilson/PyScripts/models/{}.fbx'.format(model), 'w+') as handle:
+                for bytes in tqdm(response.iter_content()):
+                    handle.write(bytes)
+
+def main():
+    downloadAllModels()
+
+if __name__ == '__main__':
+    main()
