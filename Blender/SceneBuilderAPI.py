@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.5
- 
+
 #Must be run using python 3.5
- 
+
 #import numpy as np
 import bpy
 import xml.etree.ElementTree as ET
- 
+
 #References to global blender objects
 SceneData = bpy.data
 SceneContext = bpy.context
@@ -15,7 +15,7 @@ SceneCamera = SceneData.cameras['Camera']
 xmlHandle = None
 xmlRoot = None
 isXMLLoaded = False
- 
+
 #Identifies the type of 3D model
 def getFileType(filepath):
     if filepath.endswith('.3ds'):
@@ -26,7 +26,7 @@ def getFileType(filepath):
         return 3
     else:
         return 0
-    
+
 #Returns the object last added to the scene
 #DevNote: make usage safe
 def getLastLoadedObject():
@@ -34,31 +34,31 @@ def getLastLoadedObject():
         if obj.select:
             return obj
     return None
- 
+
 #Loads a specified xml file
 #DevNote: current system is not ideal, consider an OO approach
 def loadXML(filepath):
     xmlHandle = ET.parse(filepath)
     xmlRoot = xmlHandle.getroot()
     isXMLLoaded = True
-    
+
 #Adjusts the SceneCamera via the given parameters. Focal length is in mm
 def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0, 0.0, 0.0)):
     SceneCamera.lens = focalLength
     #Location and orientation are currently ignored. Will be changed soon
     #SceneCamera.location = position
     #SceneCamera.rotation = orientation
-    
+
 #Captures an image from the current camera and saves it to the specified path
 def renderImage(outputPath):
     SceneContext.scene.render.filepath = outputPath
     bpy.ops.render.render( write_still = True)
-    
+
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
 def loadModel(filepath, name, position = (0.0, 0.0, 0.0)):
     fileType = getFileType(filepath)
-     
+
     #Loads the 3D model with the correct function
     if fileType == 1:
         bpy.ops.import_scene.autodesk_3ds(filepath = path)
@@ -69,13 +69,13 @@ def loadModel(filepath, name, position = (0.0, 0.0, 0.0)):
     else:
         print('File "{f}" is not a recognized file type'.format(f = filepath))
         return
-    
+
     lastObject = getLastLoadedObject()
 
     #Updates name and position of loaded model
     lastObject.name = name
     lastObject.location = position
-    
+
     return lastObject
 
 #Loads all models from the 'object' tag of the loaded XML document
@@ -119,9 +119,11 @@ def correctLocalView():
                     if region.type == 'WINDOW':
                         override = {'area': area, 'region': region} #override context
                         bpy.ops.view3d.localview(override) #switch to global view
-                        
+
 def main():
     print('SceneBuilderAPI')
-    
+    correctLocalView()
+    renderImage('test.png')
+
 if __name__ == '__main__':
     main()
