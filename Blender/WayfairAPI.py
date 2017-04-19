@@ -23,7 +23,7 @@ HEADERS = {
     'Cache-Control': "no-cache",
     'Connection': "close",
     'Host': "www.wayfair.com",
-    'User-Agent': "Mozilla/5.0"
+    'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
     }
 
 #Attempts to get a JSON object out of the response
@@ -35,23 +35,6 @@ def getJSON(response):
     except:
         return False, None
 
-#Downloads the fbx file associated with the given SKU if it exists
-#File will be downloaded to the given directory path with the filename being the SKU given
-#DevNote: not currently finished, want to finish testing current download method
-def fetchModel(sku, directory):
-    
-    #Prepare the appropriate url
-    url = BASE_URL + MODEL_ENDPOINT + SKU_TAG.format(sku)
-    
-    #Prepare the filepath that will be used later
-    filepath = os.path.join(directory, '{}.fbx'.format(sku))
-    
-    response = requests.get(url, headers = HEADERS)
-    
-    success, data = getJSON(response)
-    
-    if not successful:
-        return False, 'bad response'
 
 #OUTDATED: Requires rewrite to utilize fetchModel()
 #Downloads ALL fbx model files from the Wayfair database. This operation will take a couple HOURS to do
@@ -66,7 +49,7 @@ def downloadAllModels():
     print('Converting response to JSON...')
 
     successful, data = getJSON(response)
-    
+
     if not successful:
         return False, 'bad response'
 
@@ -91,7 +74,7 @@ def downloadAllModels():
         print('Downloading model {current} of {total}...'.format(current = modelNumber, total = modelCount))
         modelNumber += 1
 
-        response = requests.get(modelURLs[model], headers = HEADERS, stream = True)
+        response = requests.get(modelURLs[model])
 
         if response.status_code == 200:
             with open('/home/wilson/PyScripts/models/{}.fbx'.format(model), 'wb+') as handle:

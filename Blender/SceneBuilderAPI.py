@@ -1,21 +1,33 @@
 #!/usr/bin/env python3.5
- 
+
 #Must be run using python 3.5
- 
+
 #import numpy as np
 import bpy
 import xml.etree.ElementTree as ET
- 
+import math
+
 #References to global blender objects
 SceneData = bpy.data
 SceneContext = bpy.context
 SceneCamera = SceneData.cameras['Camera']
+SceneCameraObject = SceneData.objects['Camera']
 
 #XML globals; for loading and rendering from an XML file
 xmlHandle = None
 xmlRoot = None
 isXMLLoaded = False
- 
+
+#Array that holds all the objects that are supposed to be in the scene
+registeredObjects = ['Camera', 'Lamp']
+
+#Converts a vector of angles from degrees to radians
+def deg2rad(orientation):
+    radians = []
+    for i in range(len(orientation)):
+        radians.append(math.radians(orientation[i]))
+    return radians
+
 #Identifies the type of 3D model
 def getFileType(filepath):
     if filepath.endswith('.3ds'):
@@ -26,39 +38,56 @@ def getFileType(filepath):
         return 3
     else:
         return 0
-    
+
 #Returns the object last added to the scene
 #DevNote: make usage safe
 def getLastLoadedObject():
-    for obj in SceneData:
+    for obj in SceneData.objects:
         if obj.select:
             return obj
     return None
- 
+
 #Loads a specified xml file
 #DevNote: current system is not ideal, consider an OO approach
 def loadXML(filepath):
     xmlHandle = ET.parse(filepath)
     xmlRoot = xmlHandle.getroot()
     isXMLLoaded = True
-    
+
 #Adjusts the SceneCamera via the given parameters. Focal length is in mm
 def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0, 0.0, 0.0)):
     SceneCamera.lens = focalLength
     #Location and orientation are currently ignored. Will be changed soon
-    #SceneCamera.location = position
-    #SceneCamera.rotation = orientation
-    
+    SceneCameraObject.location = position
+    SceneCameraObject.rotation_euler = deg2rad(orientation)
+
 #Captures an image from the current camera and saves it to the specified path
 def renderImage(outputPath):
     SceneContext.scene.render.filepath = outputPath
     bpy.ops.render.render( write_still = True)
-    
+
+#Removes all objects from the scene if they exist
+def removeObjects(objectNames):
+    bpy.ops.object.select_all(action='DESELECT')
+    for name in objectNames:
+        if name in SceneData.objects:
+            SceneData.objects[name].select = True
+    bpy.ops.object.delete()
+
+#Removes an object by name if it exists
+def removeObject(objectName):
+    removeObjects([objectName])
+
+def purgeScene():
+    for object in SceneData.objects:
+        if object.name not in registeredObjects:
+
+
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
-def loadModel(path, name, position = (0.0, 0.0, 0.0)):
+def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0.0]):
     fileType = getFileType(path)
-     
+
     #Loads the 3D model with the correct function
     if fileType == 1:
         bpy.ops.import_scene.autodesk_3ds(filepath = path)
@@ -69,13 +98,14 @@ def loadModel(path, name, position = (0.0, 0.0, 0.0)):
     else:
         print('File "{f}" is not a recognized file type'.format(f = path))
         return
-    
+
     lastObject = getLastLoadedObject()
 
     #Updates name and position of loaded model
     lastObject.name = name
     lastObject.location = position
-    
+    lastObject.rotation_euler = deg2rad(orientation)
+
     return lastObject
 
 #Loads all models from the 'object' tag of the loaded XML document
@@ -119,9 +149,9 @@ def correctLocalView():
                     if region.type == 'WINDOW':
                         override = {'area': area, 'region': region} #override context
                         bpy.ops.view3d.localview(override) #switch to global view
-                        
+
 def main():
     print('SceneBuilderAPI')
-    
+
 if __name__ == '__main__':
     main()
