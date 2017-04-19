@@ -56,8 +56,8 @@ def renderImage(outputPath):
     
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
-def loadModel(filepath, name, position = (0.0, 0.0, 0.0)):
-    fileType = getFileType(filepath)
+def loadModel(path, name, position = (0.0, 0.0, 0.0)):
+    fileType = getFileType(path)
      
     #Loads the 3D model with the correct function
     if fileType == 1:
@@ -67,7 +67,7 @@ def loadModel(filepath, name, position = (0.0, 0.0, 0.0)):
     elif fileType == 3:
         bpy.ops.import_scene.obj(filepath = path)
     else:
-        print('File "{f}" is not a recognized file type'.format(f = filepath))
+        print('File "{f}" is not a recognized file type'.format(f = path))
         return
     
     lastObject = getLastLoadedObject()
