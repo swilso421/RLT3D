@@ -35,7 +35,6 @@ def getJSON(response):
     except:
         return False, None
 
-<<<<<<< HEAD
 def downloadModelFromURL(filepath, url, stream = False):
 
     #Get a response object from the target URL
@@ -67,13 +66,11 @@ def fetchModel(sku, directory):
 
     if not successful:
         return False, 'bad response'
-=======
->>>>>>> 6f3424ec6d8138f455903a10596db20c94e9220b
 
     if not 'fbx' in data[sku]:
         return False, 'Model {} does not have an fbx download'.format(sku)
 
-
+    downloadModelFromURL(filepath, data[sku]['fbx'])
 
 #OUTDATED: Requires rewrite to utilize fetchModel()
 #Downloads ALL fbx model files from the Wayfair database. This operation will take a couple HOURS to do
@@ -108,11 +105,7 @@ def downloadAllModels(directory):
 
     for model in modelURLs:
 
-<<<<<<< HEAD
         filepath = os.path.join(directory, '{}.fbx'.format(model))
-=======
-        response = requests.get(modelURLs[model])
->>>>>>> 6f3424ec6d8138f455903a10596db20c94e9220b
 
         if not os.path.isfile(filepath):
             print('Downloading model {sku} to {path}'.format(sku = model, path = filepath))
