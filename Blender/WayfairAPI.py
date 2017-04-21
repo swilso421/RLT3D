@@ -23,7 +23,7 @@ HEADERS = {
     'Cache-Control': "no-cache",
     'Connection': "close",
     'Host': "www.wayfair.com",
-    'User-Agent': "Mozilla/5.0"
+    'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
     }
 
 #Attempts to get a JSON object out of the response
@@ -35,6 +35,7 @@ def getJSON(response):
     except:
         return False, None
 
+<<<<<<< HEAD
 def downloadModelFromURL(filepath, url, stream = False):
 
     #Get a response object from the target URL
@@ -66,6 +67,8 @@ def fetchModel(sku, directory):
 
     if not successful:
         return False, 'bad response'
+=======
+>>>>>>> 6f3424ec6d8138f455903a10596db20c94e9220b
 
     if not 'fbx' in data[sku]:
         return False, 'Model {} does not have an fbx download'.format(sku)
@@ -105,7 +108,11 @@ def downloadAllModels(directory):
 
     for model in modelURLs:
 
+<<<<<<< HEAD
         filepath = os.path.join(directory, '{}.fbx'.format(model))
+=======
+        response = requests.get(modelURLs[model])
+>>>>>>> 6f3424ec6d8138f455903a10596db20c94e9220b
 
         if not os.path.isfile(filepath):
             print('Downloading model {sku} to {path}'.format(sku = model, path = filepath))
