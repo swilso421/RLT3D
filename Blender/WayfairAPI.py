@@ -35,27 +35,46 @@ def getJSON(response):
     except:
         return False, None
 
+def downloadModelFromURL(filepath, url, stream = False):
+
+    #Get a response object from the target URL
+    response = requests.get(url, stream = stream)
+
+    #Writes the downloaded file to disk
+    if response.status_code == 200:
+        with open(filepath, 'wb+') as handle:
+            for data in tqdm(response.iter_content()):
+                handle.write(data)
+        return True
+    else:
+        return False
+
 #Downloads the fbx file associated with the given SKU if it exists
 #File will be downloaded to the given directory path with the filename being the SKU given
 #DevNote: not currently finished, want to finish testing current download method
 def fetchModel(sku, directory):
-    
+
     #Prepare the appropriate url
     url = BASE_URL + MODEL_ENDPOINT + SKU_TAG.format(sku)
-    
+
     #Prepare the filepath that will be used later
     filepath = os.path.join(directory, '{}.fbx'.format(sku))
-    
+
     response = requests.get(url, headers = HEADERS)
-    
-    success, data = getJSON(response)
-    
+
+    successful, data = getJSON(response)
+
     if not successful:
         return False, 'bad response'
 
+    if not 'fbx' in data[sku]:
+        return False, 'Model {} does not have an fbx download'.format(sku)
+
+
+
 #OUTDATED: Requires rewrite to utilize fetchModel()
 #Downloads ALL fbx model files from the Wayfair database. This operation will take a couple HOURS to do
-def downloadAllModels():
+def downloadAllModels(directory):
 
     url = BASE_URL + MODEL_ENDPOINT + ALL_PAGES_TAG
 
@@ -66,7 +85,7 @@ def downloadAllModels():
     print('Converting response to JSON...')
 
     successful, data = getJSON(response)
-    
+
     if not successful:
         return False, 'bad response'
 
@@ -81,27 +100,23 @@ def downloadAllModels():
     del response, data
 
     modelCount = len(modelURLs)
-    modelNumber = 1
-
-    count = 0
 
     print('Downloading models...')
 
     for model in modelURLs:
-        print('Downloading model {current} of {total}...'.format(current = modelNumber, total = modelCount))
-        modelNumber += 1
 
-        response = requests.get(modelURLs[model], headers = HEADERS, stream = True)
+        filepath = os.path.join(directory, '{}.fbx'.format(model))
 
-        if response.status_code == 200:
-            with open('/home/wilson/PyScripts/models/{}.fbx'.format(model), 'wb+') as handle:
-                for data in tqdm(response.iter_content()):
-                    handle.write(data)
+        if not os.path.isfile(filepath):
+            print('Downloading model {sku} to {path}'.format(sku = model, path = filepath))
+            downloadModelFromURL(filepath, modelURLs[model])
+        else:
+            print('File {path} already exists; skipping'.format(path = filepath))
 
 #If this API is run directly, it downloads all of the models
 #Just here during testing
 def main():
-    downloadAllModels()
+    downloadAllModels(/home/wilson/PyScripts/models)
 
 if __name__ == '__main__':
     main()
