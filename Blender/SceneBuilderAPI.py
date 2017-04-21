@@ -57,7 +57,6 @@ def loadXML(filepath):
 #Adjusts the SceneCamera via the given parameters. Focal length is in mm
 def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0, 0.0, 0.0)):
     SceneCamera.lens = focalLength
-    #Location and orientation are currently ignored. Will be changed soon
     SceneCameraObject.location = position
     SceneCameraObject.rotation_euler = deg2rad(orientation)
 
@@ -78,9 +77,13 @@ def removeObjects(objectNames):
 def removeObject(objectName):
     removeObjects([objectName])
 
+#Removes anything not added through this API
 def purgeScene():
+    removeTargets = []
     for object in SceneData.objects:
         if object.name not in registeredObjects:
+            removeTargets.append(object.name)
+    removeObjects(removeTargets)
 
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
@@ -104,6 +107,8 @@ def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0
     lastObject.name = name
     lastObject.location = position
     lastObject.rotation_euler = deg2rad(orientation)
+
+    registeredObjects.append(lastObject.name)
 
     return lastObject
 
