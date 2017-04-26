@@ -51,7 +51,7 @@ def loadJSON(filepath):
         return False, None
 
 #Stores data as JSON in a file
-def storeJSON(data, filepath):
+def storeAsJSON(data, filepath):
     with open(filepath, 'w+') as handle:
         handle.write(json.dumps(data))
 
@@ -68,7 +68,9 @@ def downloadModelFromURL(filepath, url, stream = False):
         with open(filepath, 'wb+') as handle:
             #for data in tqdm(response.iter_content()):
                 #handle.write(data)
-            handle.write(response.content())
+            #handle.write(response.content())
+            for data in response.iter_content():
+                handle.write(data)
         return True
     else:
         return False
@@ -152,16 +154,18 @@ def downloadAllModels(directory):
         else:
             print('File {path} already exists; skipping'.format(path = filepath))
 
-def downloadProductInformation(filepath):
+def downloadProductInformation(filepath, start = 0, count = 100000):
     #While loop counter
-    currentPage = 0
+    currentPage = start
 
     #Initialize a dictionary to hold the product info
-    infoDictionary = {}
+    successful, infoDictionary = loadJSON(filepath)
+    if not successful:
+        infoDictionary = {}
 
     #There is too much product info to fetch via the all pages tag
     #Instead, pages are polled individually. Not efficient, looking for workaround
-    while (True):
+    while (currentPage < count):
         #URL to fetch some product info
         url = BASE_URL + PRODUCT_ENDPOINT + PAGE_TAG.format(currentPage)
 
@@ -178,6 +182,7 @@ def downloadProductInformation(filepath):
         #If the script was flagged as a bot
         if not successful:
             print('bad response')
+            print('last successful page read was {}'.format(currentPage - 1))
             break
         elif data == 'No products found':
             print("last page")
@@ -195,11 +200,10 @@ def downloadProductInformation(filepath):
         #Increment counter
         currentPage += 1
 
-    print('Writing product info to disk...')
+        print('Writing product info to disk...')
 
-    #Saves the product info to disk
-    with open(filepath, 'w+') as handle:
-        handle.write(json.dumps(infoDictionary))
+        #Saves the product info to disk
+        storeAsJSON(infoDictionary, filepath)
 
 #If this API is run directly, it downloads all of the models
 #Just here during testing
@@ -218,5 +222,5 @@ def initialize():
 if __name__ == '__main__':
     main()
 elif __name__ == 'WayfairAPI':
-    initialize()
-    #print('thing')
+    #initialize()
+    print('thing')
