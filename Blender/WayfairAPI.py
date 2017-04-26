@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import requests
+import json
 import os.path
-from tqdm import tqdm
+#from tqdm import tqdm
 
 #Global variables for various components of the api
 BASE_URL = "https://www.wayfair.com/v/api/three_d_model/"
@@ -26,6 +27,11 @@ HEADERS = {
     'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
     }
 
+PRODUCT_INFORMATION = {}
+isProductInfoLoaded = False
+CLASS_INDEX = {}
+isClassIndexLoaded = False
+
 #Attempts to get a JSON object out of the response
 #If the request was flagged as a bot this will fail, and this function will return a boolean indicating this
 def getJSON(response):
@@ -34,6 +40,20 @@ def getJSON(response):
         return True, data
     except:
         return False, None
+
+#Loads JSON from a file
+def loadJSON(filepath):
+    if os.path.isfile(filepath):
+        with open(filepath, 'r') as handle:
+            response = handle.read()
+        return True, json.loads(response)
+    else:
+        return False, None
+
+#Stores data as JSON in a file
+def storeJSON(data, filepath):
+    with open(filepath, 'w+') as handle:
+        handle.write(json.dumps(data))
 
 #Downloads a specific model from a url. Technically, this is just a generic
 #download function and could download any file type
@@ -46,8 +66,9 @@ def downloadModelFromURL(filepath, url, stream = False):
     #Writes the downloaded file to disk
     if response.status_code == 200:
         with open(filepath, 'wb+') as handle:
-            for data in tqdm(response.iter_content()):
-                handle.write(data)
+            #for data in tqdm(response.iter_content()):
+                #handle.write(data)
+            handle.write(response.content())
         return True
     else:
         return False
@@ -131,10 +152,71 @@ def downloadAllModels(directory):
         else:
             print('File {path} already exists; skipping'.format(path = filepath))
 
+def downloadProductInformation(filepath):
+    #While loop counter
+    currentPage = 0
+
+    #Initialize a dictionary to hold the product info
+    infoDictionary = {}
+
+    #There is too much product info to fetch via the all pages tag
+    #Instead, pages are polled individually. Not efficient, looking for workaround
+    while (True):
+        #URL to fetch some product info
+        url = BASE_URL + PRODUCT_ENDPOINT + PAGE_TAG.format(currentPage)
+
+        print('Requesting product info...')
+
+        #Fetch the product info
+        response = requests.get(url, headers=HEADERS)
+
+        print('Converting product info...')
+
+        #Convert http response to JSON data
+        successful, data = getJSON(response)
+
+        #If the script was flagged as a bot
+        if not successful:
+            print('bad response')
+            break
+        elif data == 'No products found':
+            print("last page")
+            break
+
+        print('Parsing product info...')
+
+        #Parse the wanted fields from the product info and load into infoDictionary
+        for item in data:
+            newEntry = {}
+            newEntry['class_id'] = item['class_id']
+            newEntry['name'] = item['product_name']
+            infoDictionary[item['sku']] = newEntry
+
+        #Increment counter
+        currentPage += 1
+
+    print('Writing product info to disk...')
+
+    #Saves the product info to disk
+    with open(filepath, 'w+') as handle:
+        handle.write(json.dumps(infoDictionary))
+
 #If this API is run directly, it downloads all of the models
 #Just here during testing
 def main():
-    downloadAllModels(/home/wilson/PyScripts/models)
+    downloadAllModels('/home/wilson/PyScripts/models')
+
+#This is run if this API is loaded as a module
+def initialize():
+    isProductInfoLoaded, PRODUCT_INFORMATION = loadJSON('WayfairProductInformation.txt')
+    if not isProductInfoLoaded:
+        print('WayfairProductInformation.txt not found! Downloading product info...')
+        downloadProductInformation('WayfairProductInformation.txt')
+        isProductInfoLoaded, PRODUCT_INFORMATION = loadJSON('WayfairProductInformation.txt')
+    isClassIndexLoaded, CLASS_INDEX = loadJSON('WayfairClassIndex.txt')
 
 if __name__ == '__main__':
     main()
+elif __name__ == 'WayfairAPI':
+    initialize()
+    #print('thing')
