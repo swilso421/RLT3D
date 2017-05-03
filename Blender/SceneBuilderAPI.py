@@ -3,9 +3,11 @@
 #Must be run using python 3.5
 
 #import numpy as np
+import argparse
 import bpy
 import xml.etree.ElementTree as ET
 import math
+import mathutils
 
 #References to global blender objects
 SceneData = bpy.data
@@ -60,10 +62,22 @@ def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0,
     SceneCameraObject.location = position
     SceneCameraObject.rotation_euler = deg2rad(orientation)
 
+#Adjusts the SceneCamera based on supplied K and RT matrices
+def configureCameraFromMatrix(K, RT):
+    loc, rot = RTMatrixToVectors(RT)
+    SceneCamera.lens = K[0][0]
+    SceneCameraObject.location = loc
+    SceneCameraObject.rotation_quaternion = rot
+
 #Captures an image from the current camera and saves it to the specified path
 def renderImage(outputPath):
     SceneContext.scene.render.filepath = outputPath
     bpy.ops.render.render( write_still = True)
+
+#Configures the camera based on given matrices and renders an image
+def renderImageFromMatrix(outputPath, KMatrix, RTMatrix):
+    configureCameraFromMatrix(KMatrix, RTMatrix)
+    renderImage(outputPath)
 
 #Removes all objects from the scene if they exist
 def removeObjects(objectNames):
@@ -87,7 +101,7 @@ def purgeScene():
 
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
-def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0.0]):
+def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0.0], autoPurge = True):
     fileType = getFileType(path)
 
     #Loads the 3D model with the correct function
@@ -109,6 +123,10 @@ def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0
     lastObject.rotation_euler = deg2rad(orientation)
 
     registeredObjects.append(lastObject.name)
+
+    #Cleans up any unwanted objects
+    if autoPurge:
+        purgeScene()
 
     return lastObject
 
@@ -154,10 +172,25 @@ def correctLocalView():
                         override = {'area': area, 'region': region} #override context
                         bpy.ops.view3d.localview(override) #switch to global view
 
+#Returns the location vector and a rotation Quaternion from an RT matrix
+#The rotation component returned is a Quaternion
+def RTMatrixToVectors(RT):
+    mat = mathutils.Matrix() #Defaults to I4
+    for k in range(3):
+        for j in range(3):
+            mat[k][j] = RT[k][j] #Copies the rotation matrix
+        mat[k][3] = RT[k][3] #Copies the translation vector
+
+    vectors = mat.decompose() #Vectors contains location, rotation(Quaternion), and scale
+
+    return vectors[0], vectors[1] #Return location and rotation(Quaternion)
+
 def main():
-    print('SceneBuilderAPI')
-    correctLocalView()
-    renderImage('test.png')
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-x', '--xml', action='store', default='')
+    group.add_argument('-d', '--display', action='store', default='')
+    parser.add_argument('-o', '--output', action='store', default='')
 
 if __name__ == '__main__':
     main()
