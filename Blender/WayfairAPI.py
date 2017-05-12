@@ -3,7 +3,9 @@
 import requests
 import json
 import os.path
-#from tqdm import tqdm
+import sqlite3
+import operator
+import textutils
 
 #Global variables for various components of the api
 BASE_URL = "https://www.wayfair.com/v/api/three_d_model/"
@@ -26,11 +28,6 @@ HEADERS = {
     'Host': "www.wayfair.com",
     'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
     }
-
-PRODUCT_INFORMATION = {}
-isProductInfoLoaded = False
-CLASS_INDEX = {}
-isClassIndexLoaded = False
 
 #Attempts to get a JSON object out of the response
 #If the request was flagged as a bot this will fail, and this function will return a boolean indicating this
@@ -55,6 +52,109 @@ def storeAsJSON(data, filepath):
     with open(filepath, 'w+') as handle:
         handle.write(json.dumps(data))
 
+#Given a query, returns a list of candidate classes which may be the desired class.
+#Candidate list is sorted by estimated likelihood
+#DevNote: first attempt, pretty big time complexity. Look into optimizations or alternative fuzzy matching
+def fuzzyClassMatch(query):
+    #Breaks the query into constituent words and counts the number of words
+    queryWords = textutils.splitWords(query)
+    queryWordCount = len(queryWords)
+
+    #Retrieves all of the class IDs and names from the database
+    cursor.execute('''SELECT * From Classes''')
+    classTable = cursor.fetchall()
+
+    #Selects class names that contain any word of the query
+    candidates = []
+    for row in classTable:
+        for qword in queryWords:
+            if qword in row[1]:
+                candidates.append({'ClassID': row[0], 'ClassName': row[1]})
+                break
+
+    #Calculates the WeightedDistance for each candidate class name
+    for candidate in candidates:
+        #Breaks the candidate into words
+        candidateWords = textutils.splitWords(candidate['ClassName'])
+
+        #If the number of words in the candidate is less than the number of words in the query,
+        #it probably isn't the category we're looking for. The WeightedDistance is set arbitrarily high
+        #and we continue to the next iteration
+        if len(candidateWords) < queryWordCount:
+            candidate['WeightedDistance'] = 10000
+            continue
+
+        #Calculates the overall Levenshtein distance between the full class name and full query
+        LDPhrase = textutils.Levenshtein(query, candidate['ClassName'])
+
+        #Calculates the Levenshtein distances between each word in the candidate and query.
+        #This is useful because it gives a better estimate of whether or not the candidate contains subwords from the query
+        LDWord = 0
+        for qword in queryWords:
+            smallest = 10000
+            for cword in candidateWords:
+                distance = textutils.Levenshtein(cword, qword)
+                if distance < smallest:
+                    smallest = distance
+            LDWord += smallest
+
+        #Creates a weighted estimate of the similarity between the query and candidate
+        #This helps balance out the
+        candidate['WeightedDistance'] = 0.2 * LDPhrase + 0.8 * LDWord
+
+    #Sorts the candidates so that the smallest weighte distances are at the front of the list
+    candidates.sort(key = operator.itemgetter('WeightedDistance'))
+
+    return candidates
+
+#Determines if the database contains the target SKU
+def databaseContains(sku):
+    cursor.execute('''SELECT * FROM Models WHERE SKU = ?''', (sku,))
+    if len(cursor.fetchall()) == 0:
+        return False
+    else:
+        return True
+
+#Sets the path field of the specified sku in the database
+def databaseSetPath(sku, path):
+    path = os.path.abspath(path)
+    if databaseContains(sku):
+        cursor.execute('''UPDATE Models SET Path = ? WHERE SKU = ?''', (path, sku))
+    else:
+        cursor.execute('''INSERT INTO Models(SKU, Path) VALUES(?, ?)''', (sku, path))
+    database.commit()
+
+#Sets the classID and productName fields of the specified sku in the database
+def databaseSetInfo(sku, classID, productName):
+    if databaseContains(sku):
+        cursor.execute('''UPDATE Models SET ClassID = ?, ProductName = ? WHERE SKU = ?''', (classID, productName, sku))
+    else:
+        cursor.execute('''INSERT INTO Models(SKU, ClassID, ProductName) VALUES(?, ?, ?)''', (sku, classID, productName))
+    database.commit()
+
+#Retrieves info for a specified SKU
+def databaseGetBySKU(sku):
+    info = {}
+    cursor.execute('''SELECT * FROM Models WHERE SKU = ?''', (sku,))
+    data = cursor.fetchall()
+    if not len(data) == 0:
+        data = data[0]
+        info['sku'] = data[0]
+        info['name'] = data[1]
+        info['ClassID'] = data[2]
+        info['path'] = data[3]
+    return info
+
+#Returns a list of SKU's that belong to the specified class
+def databaseGetByClassID(classID):
+    cursor.execute('''SELECT SKU FROM Models WHERE ClassID = ?''', (classID,))
+    return [item for sublist in cursor.fetchall() for item in sublist]
+
+#This sets all of the paths in table Models to null. Useful when switching machines
+def databasePurgePaths():
+    cursor.execute('''UPDATE Models SET Path = ?''', (None,))
+    database.commit()
+
 #Downloads a specific model from a url. Technically, this is just a generic
 #download function and could download any file type
 #Also, this will overwrite any file with the same filepath
@@ -66,9 +166,6 @@ def downloadModelFromURL(filepath, url, stream = False):
     #Writes the downloaded file to disk
     if response.status_code == 200:
         with open(filepath, 'wb+') as handle:
-            #for data in tqdm(response.iter_content()):
-                #handle.write(data)
-            #handle.write(response.content())
             for data in response.iter_content():
                 handle.write(data)
         return True
@@ -99,6 +196,9 @@ def fetchModel(sku, directory):
     #If the model doesn't have an fbx download, return false
     if not 'fbx' in data[sku]:
         return False, 'Model {} does not have an fbx download'.format(sku)
+
+    #Adds the path into the database
+    databaseSetPath(sku, filepath)
 
     #Returns the result of the download; i.e. whether or not it was downloaded
     return downloadModelFromURL(filepath, data[sku]['fbx'])
@@ -135,7 +235,7 @@ def downloadAllModels(directory):
         if 'fbx' in data[entry]:
             modelURLs[entry] = data[entry]['fbx']
 
-    #Clear these variables since we wil reuse them
+    #Clear these variables since we will reuse them
     del response, data
 
     modelCount = len(modelURLs)
@@ -154,14 +254,13 @@ def downloadAllModels(directory):
         else:
             print('File {path} already exists; skipping'.format(path = filepath))
 
-def downloadProductInformation(filepath, start = 0, count = 100000):
+        #Adds the path into the database
+        databaseSetPath(model, filepath)
+
+#Downloads product information from the WayfairAPI and saves it to the database
+def downloadProductInformation(start = 0, count = 100000):
     #While loop counter
     currentPage = start
-
-    #Initialize a dictionary to hold the product info
-    successful, infoDictionary = loadJSON(filepath)
-    if not successful:
-        infoDictionary = {}
 
     #There is too much product info to fetch via the all pages tag
     #Instead, pages are polled individually. Not efficient, looking for workaround
@@ -188,22 +287,48 @@ def downloadProductInformation(filepath, start = 0, count = 100000):
             print("last page")
             break
 
-        print('Parsing product info...')
+        print('Saving product info...')
 
         #Parse the wanted fields from the product info and load into infoDictionary
         for item in data:
-            newEntry = {}
-            newEntry['class_id'] = item['class_id']
-            newEntry['name'] = item['product_name']
-            infoDictionary[item['sku']] = newEntry
+            # newEntry = {}
+            # newEntry['class_id'] = item['class_id']
+            # newEntry['name'] = item['product_name']
+            # infoDictionary[item['sku']] = newEntry
+            databaseSetInfo(item['sku'], item['class_id'], item['product_name'])
 
         #Increment counter
         currentPage += 1
 
-        print('Writing product info to disk...')
+#Returns a class id for the shortest class name containing the keyword
+#DevNote: this is not a good way to do this; consider using Levenshtein, Jaro-Winkler, or LCS to enchance applicability
+def lookupClassID(keyword):
 
-        #Saves the product info to disk
-        storeAsJSON(infoDictionary, filepath)
+    #Normalize case
+    keyword = keyword.lower()
+
+    #Initialize array to hold candidates
+    candidates = []
+
+    #Finds all classes containing the keyword
+    for ID in CLASS_INDEX:
+        if keyword in CLASS_INDEX[ID]:
+            candidates.append(CLASS_INDEX[ID])
+
+    #Short-circuit eval to quit before sorting and searching
+    if len(candidates) == 0:
+        return -1
+
+    #Sorts the candidates so the shortest class name is first
+    candidates.sort(key = len)
+
+    #Fetches the ID of the shortest class name
+    for ID in CLASS_INDEX:
+        if CLASS_INDEX[ID] == candidates[0]:
+            return int(ID)
+
+    #If the function gets to this return statement something went wrong
+    return -1
 
 #If this API is run directly, it downloads all of the models
 #Just here during testing
@@ -212,15 +337,13 @@ def main():
 
 #This is run if this API is loaded as a module
 def initialize():
-    isProductInfoLoaded, PRODUCT_INFORMATION = loadJSON('WayfairProductInformation.txt')
-    if not isProductInfoLoaded:
-        print('WayfairProductInformation.txt not found! Downloading product info...')
-        downloadProductInformation('WayfairProductInformation.txt')
-        isProductInfoLoaded, PRODUCT_INFORMATION = loadJSON('WayfairProductInformation.txt')
-    isClassIndexLoaded, CLASS_INDEX = loadJSON('WayfairClassIndex.txt')
+    global database
+    global cursor
+    database = sqlite3.connect('database')
+    cursor = database.cursor()
+
 
 if __name__ == '__main__':
     main()
 elif __name__ == 'WayfairAPI':
-    #initialize()
-    print('thing')
+    initialize()

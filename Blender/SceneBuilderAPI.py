@@ -26,8 +26,8 @@ registeredObjects = ['Camera', 'Lamp']
 #Converts a vector of angles from degrees to radians
 def deg2rad(orientation):
     radians = []
-    for i in range(len(orientation)):
-        radians.append(math.radians(orientation[i]))
+    for angle in orientation:
+        radians.append(math.radians(angle))
     return radians
 
 #Identifies the type of 3D model
@@ -189,8 +189,8 @@ def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-x', '--xml', action='store', default='')
-    group.add_argument('-d', '--display', action='store', default='')
-    parser.add_argument('-o', '--output', action='store', default='')
+    group.add_argument('-m', '--model', action='store', default='')
+    parser.add_argument('-d', '--directory', action='store', default='')
 
 if __name__ == '__main__':
     main()
