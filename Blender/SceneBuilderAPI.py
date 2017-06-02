@@ -6,7 +6,7 @@
 import argparse
 import bpy
 import xml.etree.ElementTree as ET
-import math
+from math import radians, sin, cos
 import mathutils
 
 #References to global blender objects
@@ -25,10 +25,10 @@ registeredObjects = ['Camera', 'Lamp']
 
 #Converts a vector of angles from degrees to radians
 def deg2rad(orientation):
-    radians = []
+    r = []
     for angle in orientation:
-        radians.append(math.radians(angle))
-    return radians
+        r.append(radians(angle))
+    return r
 
 #Identifies the type of 3D model
 def getFileType(filepath):
@@ -62,12 +62,13 @@ def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0,
     SceneCameraObject.location = position
     SceneCameraObject.rotation_euler = deg2rad(orientation)
 
-#Adjusts the SceneCamera based on supplied K and RT matrices
-def configureCameraFromMatrix(K, RT):
-    loc, rot = RTMatrixToVectors(RT)
+#Adjusts the SceneCamera based on supplied K and R matrices, and a T vector
+def configureCameraFromMatrix(K, R, T):
+    rot = RotationMatrixToEuler(R)
     SceneCamera.lens = K[0][0]
-    SceneCameraObject.location = loc
-    SceneCameraObject.rotation_quaternion = rot
+    SceneCameraObject.location = T
+    print('Setting rot to {}'.format(rot))
+    SceneCameraObject.rotation_euler = rot
 
 #Captures an image from the current camera and saves it to the specified path
 def renderImage(outputPath):
@@ -75,8 +76,8 @@ def renderImage(outputPath):
     bpy.ops.render.render( write_still = True)
 
 #Configures the camera based on given matrices and renders an image
-def renderImageFromMatrix(outputPath, KMatrix, RTMatrix):
-    configureCameraFromMatrix(KMatrix, RTMatrix)
+def renderImageFromMatrix(outputPath, KMatrix, RotationMatrix, TranslationVector = (0.0, 0.0, 0.0)):
+    configureCameraFromMatrix(KMatrix, RotationMatrix, TranslationVector)
     renderImage(outputPath)
 
 #Removes all objects from the scene if they exist
@@ -174,16 +175,29 @@ def correctLocalView():
 
 #Returns the location vector and a rotation Quaternion from an RT matrix
 #The rotation component returned is a Quaternion
-def RTMatrixToVectors(RT):
-    mat = mathutils.Matrix() #Defaults to I4
-    for k in range(3):
-        for j in range(3):
-            mat[k][j] = RT[k][j] #Copies the rotation matrix
-        mat[k][3] = RT[k][3] #Copies the translation vector
+def RotationMatrixToQuaternion(matrix):
+    #mat = mathutils.Matrix() #Defaults to I4
+    #for k in range(3):
+    #    for j in range(3):
+    #        mat[k][j] = RT[k][j] #Copies the rotation matrix
+    #    mat[k][3] = RT[k][3] #Copies the translation vector
 
-    vectors = mat.decompose() #Vectors contains location, rotation(Quaternion), and scale
+    #vectors = mat.decompose() #Vectors contains location, rotation(Quaternion), and scale
 
-    return vectors[0], vectors[1] #Return location and rotation(Quaternion)
+    #return vectors[0], vectors[1] #Return location and rotation(Quaternion)
+
+    return matrix.to_quaternion()
+
+def RotationMatrixToEuler(matrix):
+    return matrix.to_euler()
+
+def EulerVectorToRotationMatrix(orientation = (0.0, 0.0, 0.0), inDegrees = True):
+    if inDegrees:
+        orientation = deg2rad(orientation)
+
+    mat = mathutils.Euler(orientation, 'XYZ').to_matrix()
+
+    return mat
 
 def main():
     parser = argparse.ArgumentParser()
