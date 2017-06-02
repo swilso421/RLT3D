@@ -67,6 +67,7 @@ def fuzzyClassMatch(query):
     #Selects class names that contain any word of the query
     candidates = []
     for row in classTable:
+        #candidates.append({'ClassID': row[0], 'ClassName': row[1]})
         for qword in queryWords:
             if qword in row[1]:
                 candidates.append({'ClassID': row[0], 'ClassName': row[1]})
@@ -154,6 +155,20 @@ def databaseGetByClassID(classID):
 def databasePurgePaths():
     cursor.execute('''UPDATE Models SET Path = ?''', (None,))
     database.commit()
+
+#Returns a path to a model that hopefully matches the specified label
+def getPathToModelByType(label):
+    matches = fuzzyClassMatch(label)
+
+    for match in matches:
+        skus = databaseGetByClassID(match['ClassID'])
+        if len(skus) > 0:
+            for sku in skus:
+                entry = databaseGetBySKU(sku)
+                if not entry['path'] == None:
+                    return entry['path']
+
+    return None
 
 #Downloads a specific model from a url. Technically, this is just a generic
 #download function and could download any file type
@@ -333,7 +348,8 @@ def lookupClassID(keyword):
 #If this API is run directly, it downloads all of the models
 #Just here during testing
 def main():
-    downloadAllModels('/home/wilson/PyScripts/models')
+    initialize()
+    downloadAllModels('/nfs/sleipnir1/WayfairModels')
 
 #This is run if this API is loaded as a module
 def initialize():
@@ -341,7 +357,6 @@ def initialize():
     global cursor
     database = sqlite3.connect('database')
     cursor = database.cursor()
-
 
 if __name__ == '__main__':
     main()

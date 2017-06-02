@@ -63,12 +63,11 @@ def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0,
     SceneCameraObject.rotation_euler = deg2rad(orientation)
 
 #Adjusts the SceneCamera based on supplied K and R matrices, and a T vector
-def configureCameraFromMatrix(K, R, T):
-    rot = RotationMatrixToEuler(R)
+def configureCameraFromMatrix(K, RT):
+    loc, rot = decomposeRTMatrix(RT)
     SceneCamera.lens = K[0][0]
-    SceneCameraObject.location = T
-    print('Setting rot to {}'.format(rot))
-    SceneCameraObject.rotation_euler = rot
+    SceneCameraObject.location = loc
+    SceneCameraObject.rotation_euler = rot.to_euler()
 
 #Captures an image from the current camera and saves it to the specified path
 def renderImage(outputPath):
@@ -76,21 +75,22 @@ def renderImage(outputPath):
     bpy.ops.render.render( write_still = True)
 
 #Configures the camera based on given matrices and renders an image
-def renderImageFromMatrix(outputPath, KMatrix, RotationMatrix, TranslationVector = (0.0, 0.0, 0.0)):
-    configureCameraFromMatrix(KMatrix, RotationMatrix, TranslationVector)
+def renderImageFromMatrix(outputPath, KMatrix, RTMatrix):
+    configureCameraFromMatrix(KMatrix, RTMatrix)
     renderImage(outputPath)
 
 #Removes all objects from the scene if they exist
 def removeObjects(objectNames):
     bpy.ops.object.select_all(action='DESELECT')
     for name in objectNames:
-        if name in SceneData.objects:
+        if name in SceneData.objects and not (name == 'Camera' or name == 'Lamp'):
             SceneData.objects[name].select = True
+            registeredObjects.remove(name)
     bpy.ops.object.delete()
 
 #Removes an object by name if it exists
 def removeObject(objectName):
-    removeObjects([objectName])
+    removeObjects((objectName,))
 
 #Removes anything not added through this API
 def purgeScene():
@@ -98,6 +98,13 @@ def purgeScene():
     for object in SceneData.objects:
         if object.name not in registeredObjects:
             removeTargets.append(object.name)
+    removeObjects(removeTargets)
+
+#Restores the scene to its initial state
+def clearScene():
+    removeTargets = registeredObjects.copy()
+    removeTargets.remove('Camera')
+    removeTargets.remove('Lamp')
     removeObjects(removeTargets)
 
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
@@ -173,29 +180,47 @@ def correctLocalView():
                         override = {'area': area, 'region': region} #override context
                         bpy.ops.view3d.localview(override) #switch to global view
 
-#Returns the location vector and a rotation Quaternion from an RT matrix
-#The rotation component returned is a Quaternion
+#Converts a rotation matrix to a quaternion
 def RotationMatrixToQuaternion(matrix):
-    #mat = mathutils.Matrix() #Defaults to I4
-    #for k in range(3):
-    #    for j in range(3):
-    #        mat[k][j] = RT[k][j] #Copies the rotation matrix
-    #    mat[k][3] = RT[k][3] #Copies the translation vector
-
-    #vectors = mat.decompose() #Vectors contains location, rotation(Quaternion), and scale
-
-    #return vectors[0], vectors[1] #Return location and rotation(Quaternion)
-
     return matrix.to_quaternion()
 
-def RotationMatrixToEuler(matrix):
+#Converts a rotation matrix to an euler vector
+def RotationMatrixToEulerVector(matrix):
     return matrix.to_euler()
 
+#Converts a vector of (euler) angles into a rotation matrix
 def EulerVectorToRotationMatrix(orientation = (0.0, 0.0, 0.0), inDegrees = True):
     if inDegrees:
         orientation = deg2rad(orientation)
 
     mat = mathutils.Euler(orientation, 'XYZ').to_matrix()
+
+    return mat
+
+#Returns the location vector and a rotation Quaternion from an RT matrix
+#The rotation component returned is a Quaternion
+def decomposeRTMatrix(RT):
+    location, quaternion, _ = RT.decompose()
+    return location, quaternion
+
+#Converts a list or numpy matrix into a Blender matrix
+def formatRTMatrix(matrix):
+    mat = mathutils.Matrix()
+    for k in range(3):
+        for j in range(3):
+            mat[k][j] = matrix[k][j]
+        mat[k][3] = matrix[k][3]
+    return mat
+
+#Creates a Blender matrix object representing an RT matrix out of a position and orientation vector
+def composeRTMatrix(rotation = (0.0, 0.0, 0.0), translation = (0.0, 0.0, 0.0), inDegrees = True):
+    rot = EulerVectorToRotationMatrix(rotation, inDegrees)
+
+    mat = mathutils.Matrix()
+    for k in range(3):
+        for j in range(3):
+            mat[k][j] = rot[k][j]
+        mat[k][3] = translation[k]
 
     return mat
 

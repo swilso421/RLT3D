@@ -1,49 +1,29 @@
 #!/usr/bin/env python3.5
 
 import SceneBuilderAPI as sbapi
+import WayfairAPI as wapi
 from time import time
 
-for object in sbapi.SceneData.objects:
-    print(object)
+#sbapi.loadModel('/home/wilson/PyScripts/models/ALCT1003.fbx', 'Rug', position = (-1.0, 0.0, 0.0))
+sbapi.loadModel('/home/wilson/PyScripts/models/AEON1080.fbx', 'Chair1', position = (-0.5, 0.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/ALCT2653.fbx', 'Chair2', position = (0.5, 0.0, 0.0))
+#sbapi.loadModel('/home/wilson/PyScripts/models/ANDO1280.fbx', 'Nightstand', position = (2.0, 0.0, 0.0))
+#sbapi.loadModel('/nfs/sleipnir1/WayfairModels/CHLH1406.fbx', 'Bedframe', position = (-2.0, 0.0, 0.0))
 
-print('+++++++++++++++++++++++++++++++++++++++++++++++++++++')
+#sbapi.renderImage('test.png')
 
-sbapi.removeStartingCube()
+sbapi.renderImageFromMatrix('test.png', [[50]], sbapi.composeRTMatrix((45, 0, 45), (3, -3, 3)))
 
-for object in sbapi.SceneData.objects:
-    print(object)
+#vec1 = (90.0, 0.0, 0.0)
+#vec2 = (90.0, 0.0, 90.0)
 
-print('+++++++++++++++++++++++++++++++++++++++++++++++++++++')
+#mat1 = sbapi.EulerVectorToRTMatrix(vec1)
+#mat2 = sbapi.EulerVectorToRTMatrix(vec2)
 
+#sbapi.renderImageFromMatrix('test1.png', [[50]], mat1)
+#sbapi.renderImageFromMatrix('test2.png', [[50]], mat2)
 
-sbapi.loadModel('/home/wilson/PyScripts/models/ALCT1003.fbx', 'Something', position = (0.0, 0.0, 1.0), orientation = (0.0, 0.0, 0.0))
-sbapi.loadModel('/home/wilson/PyScripts/models/AEON1080.fbx', 'Chair1', position = (0.0, 1.0, 0.0))
-sbapi.loadModel('/home/wilson/PyScripts/models/AEON1080.fbx', 'Chair2', position = (0.0, -1.0, 0.0), orientation = (0.0, 0.0, -180.0))
-sbapi.loadModel('/home/wilson/PyScripts/models/ANDO1280.fbx', 'Nightstand', position = (-1.0, 0.0, 0.0))
-
-
-
-sbapi.renderImage('render-test-{}.png'.format(time()))
-
-for object in sbapi.SceneData.objects:
-    print(object)
-
-#It appears this correction isn't necessary. If a black screen is rendered, try this first
-#sbapi.correctLocalView()
-
-#sbapi.configureCamera(50, position = [5.0, 0.0, 0.0], orientation = (0.0, 0.0, 0.0))
-
-#sbapi.renderImage('camera0.png')
-
-#sbapi.configureCamera(50, position = [5.0, 0.0, 0.0], orientation = (0.0, 0.0, 90.0))
-
-#sbapi.renderImage('camera90.png')
-
-#sbapi.configureCamera(50, position = [5.0, 0.0, 0.0], orientation = (0.0, 0.0, 180.0))
-
-#sbapi.renderImage('camera180.png')
-
-#sbapi.configureCamera(50, position = [5.0, 0.0, 0.0], orientation = (0.0, 0.0, 270.0))
-
-#sbapi.renderImage('camera270.png')
-
+#for theta in range(0, 360, 10):
+#	vec = (90.0, 0.0, theta)
+#	mat = sbapi.composeRTMatrix(vec, (2, 0, 0))
+#	sbapi.renderImageFromMatrix('matrix{}.png'.format(theta), [[50]], mat)
