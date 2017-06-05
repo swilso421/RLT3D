@@ -23,6 +23,10 @@ isXMLLoaded = False
 #Array that holds all the objects that are supposed to be in the scene
 registeredObjects = ['Camera', 'Lamp']
 
+#Map of object names to their default rotation offsets
+positionOffsets = {}
+rotationOffsets = {}
+
 #Converts a vector of angles from degrees to radians
 def deg2rad(orientation):
     r = []
@@ -85,7 +89,10 @@ def removeObjects(objectNames):
     for name in objectNames:
         if name in SceneData.objects and not (name == 'Camera' or name == 'Lamp'):
             SceneData.objects[name].select = True
-            registeredObjects.remove(name)
+            try:
+                registeredObjects.remove(name)
+            except:
+                continue
     bpy.ops.object.delete()
 
 #Removes an object by name if it exists
@@ -109,14 +116,14 @@ def clearScene():
 
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
-def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0.0], autoPurge = True):
+def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0.0], inDegrees = True, autoPurge = True):
     fileType = getFileType(path)
 
     #Loads the 3D model with the correct function
     if fileType == 1:
         bpy.ops.import_scene.autodesk_3ds(filepath = path)
     elif fileType == 2:
-        bpy.ops.import_scene.fbx(filepath = path)
+        bpy.ops.import_scene.fbx(filepath = path, use_manual_orientation = False)
     elif fileType == 3:
         bpy.ops.import_scene.obj(filepath = path)
     else:
@@ -127,8 +134,19 @@ def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0
 
     #Updates name and position of loaded model
     lastObject.name = name
-    lastObject.location = position
-    lastObject.rotation_euler = deg2rad(orientation)
+
+    positionOffsets[name] = lastObject.location
+
+    lastObject.location += mathutils.Vector(position)
+
+    rotationOffsets[name] = lastObject.rotation_euler.copy()
+
+    if inDegrees:
+        orientation = deg2rad(orientation)
+
+    lastObject.rotation_euler.x += orientation[0]
+    lastObject.rotation_euler.y += orientation[1]
+    lastObject.rotation_euler.z += orientation[2]
 
     registeredObjects.append(lastObject.name)
 

@@ -1,29 +1,31 @@
 #!/usr/bin/env python3.5
 
 import SceneBuilderAPI as sbapi
-import WayfairAPI as wapi
-from time import time
 
-#sbapi.loadModel('/home/wilson/PyScripts/models/ALCT1003.fbx', 'Rug', position = (-1.0, 0.0, 0.0))
-sbapi.loadModel('/home/wilson/PyScripts/models/AEON1080.fbx', 'Chair1', position = (-0.5, 0.0, 0.0))
-sbapi.loadModel('/nfs/sleipnir1/WayfairModels/ALCT2653.fbx', 'Chair2', position = (0.5, 0.0, 0.0))
-#sbapi.loadModel('/home/wilson/PyScripts/models/ANDO1280.fbx', 'Nightstand', position = (2.0, 0.0, 0.0))
-#sbapi.loadModel('/nfs/sleipnir1/WayfairModels/CHLH1406.fbx', 'Bedframe', position = (-2.0, 0.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/DEID1400.fbx', 'U1', (-3.0, 3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/BRSD1939.fbx', 'U2', (-1.5, 3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/LUNN1125.fbx', 'U3', (0.0, 3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/ZPS1156.fbx', 'U4', (1.5, 3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/TADN1734.fbx', 'U5', (3.0, 3.0, 0.0))
 
-#sbapi.renderImage('test.png')
+sbapi.loadModel('/home/wilson/PyScripts/models/ALCT1003.fbx', 'Rug', position = (-3.0, 0.0, 0.0))
+sbapi.loadModel('/home/wilson/PyScripts/models/AEON1080.fbx', 'Chair1', position = (-1.5, 0.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/ALCT2653.fbx', 'Chair2', position = (0.0, 0.0, 0.0))
+sbapi.loadModel('/home/wilson/PyScripts/models/ANDO1280.fbx', 'Nightstand', position = (1.5, 0.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/CHLH1406.fbx', 'Bedframe', position = (3.0, 0.0, 0.0))
 
-sbapi.renderImageFromMatrix('test.png', [[50]], sbapi.composeRTMatrix((45, 0, 45), (3, -3, 3)))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/ANDO4120.fbx', 'U6', (-3.0, -3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/BUNR1209.fbx', 'U7', (-1.5, -3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/HOHN7411.fbx', 'U8', (0.0, -3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/OAWY1517.fbx', 'U9', (1.5, -3.0, 0.0))
+sbapi.loadModel('/nfs/sleipnir1/WayfairModels/VKGL1444.fbx', 'U10', (3.0, -3.0, 0.0))
 
-#vec1 = (90.0, 0.0, 0.0)
-#vec2 = (90.0, 0.0, 90.0)
+sbapi.renderImage('iso.png')
 
-#mat1 = sbapi.EulerVectorToRTMatrix(vec1)
-#mat2 = sbapi.EulerVectorToRTMatrix(vec2)
+sbapi.renderImageFromMatrix('z.png', [[50]], sbapi.composeRTMatrix((0, 0, 0), (0, 0, 25)))
+sbapi.renderImageFromMatrix('x.png', [[50]], sbapi.composeRTMatrix((90, 0, 90), (25, 0, 0)))
+sbapi.renderImageFromMatrix('y.png', [[50]], sbapi.composeRTMatrix((90, 0, 0), (0, -25, 0)))
 
-#sbapi.renderImageFromMatrix('test1.png', [[50]], mat1)
-#sbapi.renderImageFromMatrix('test2.png', [[50]], mat2)
+#loadModel has optional position and orientation parameters for setting those aspects of the model
 
-#for theta in range(0, 360, 10):
-#	vec = (90.0, 0.0, theta)
-#	mat = sbapi.composeRTMatrix(vec, (2, 0, 0))
-#	sbapi.renderImageFromMatrix('matrix{}.png'.format(theta), [[50]], mat)
+#renderImageFromMatrix takes in 3 parameters: the filename, the K matrix, and the RTMatrix. This sets the cameras position, orientation, and focal length before rendering a picture. In this test code, I use an arbitrary focal length of 50mm and generate an RTMatrix from an Euler vector and a position Vector.
