@@ -218,8 +218,7 @@ def fetchModel(sku, directory):
     #Returns the result of the download; i.e. whether or not it was downloaded
     return downloadModelFromURL(filepath, data[sku]['fbx'])
 
-#OUTDATED: Requires rewrite to utilize fetchModel()
-#Downloads ALL fbx model files from the Wayfair database. This operation will take a couple HOURS to do
+#Downloads ALL fbx model files from the Wayfair database. This operation will take SEVERAL HOURS to do
 def downloadAllModels(directory):
 
     #Concatenates the appropriate url
@@ -314,36 +313,6 @@ def downloadProductInformation(start = 0, count = 100000):
 
         #Increment counter
         currentPage += 1
-
-#Returns a class id for the shortest class name containing the keyword
-#DevNote: this is not a good way to do this; consider using Levenshtein, Jaro-Winkler, or LCS to enchance applicability
-def lookupClassID(keyword):
-
-    #Normalize case
-    keyword = keyword.lower()
-
-    #Initialize array to hold candidates
-    candidates = []
-
-    #Finds all classes containing the keyword
-    for ID in CLASS_INDEX:
-        if keyword in CLASS_INDEX[ID]:
-            candidates.append(CLASS_INDEX[ID])
-
-    #Short-circuit eval to quit before sorting and searching
-    if len(candidates) == 0:
-        return -1
-
-    #Sorts the candidates so the shortest class name is first
-    candidates.sort(key = len)
-
-    #Fetches the ID of the shortest class name
-    for ID in CLASS_INDEX:
-        if CLASS_INDEX[ID] == candidates[0]:
-            return int(ID)
-
-    #If the function gets to this return statement something went wrong
-    return -1
 
 #If this API is run directly, it downloads all of the models
 #Just here during testing

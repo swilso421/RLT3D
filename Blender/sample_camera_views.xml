@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<camera_views>
+	<view name="top" type="matrix" focal="50">
+		<r1c1>1.0</r1c1><r1c2>0.0</r1c2><r1c3>0.0</r1c3><r1c4>0.0</r1c4>
+		<r2c1>0.0</r2c1><r2c2>1.0</r2c2><r2c3>0.0</r2c3><r2c4>0.0</r2c4>
+		<r3c1>0.0</r3c1><r3c2>0.0</r3c2><r3c3>1.0</r3c3><r3c4>25.0</r3c4>
+	</view>
+	<view name="right" type="euler" focal="50">
+		<unit>deg</unit>
+		<xpos>25.0</xpos>
+		<ypos>0.0</ypos>
+		<zpos>0.0</zpos>
+		<xrot>90.0</xrot>
+		<yrot>0.0</yrot>
+		<zrot>90.0</zrot>
+	</view>
+	<view name="front" type="quaternion" focal="50">
+		<xpos>0.0</xpos>
+		<ypos>-25.0</ypos>
+		<zpos>0.0</zpos>
+		<wrot>0.707</wrot>
+		<xrot>0.707</xrot>
+		<yrot>0.0</yrot>
+		<zrot>0.0</zrot>
+	</view>
+</camera_views>

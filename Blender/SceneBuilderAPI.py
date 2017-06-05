@@ -5,9 +5,13 @@
 #import numpy as np
 import argparse
 import bpy
+import bpy_types
 import xml.etree.ElementTree as ET
 from math import radians, sin, cos
 import mathutils
+import WayfairAPI as wapi
+import os
+import json
 
 #References to global blender objects
 SceneData = bpy.data
@@ -53,18 +57,13 @@ def getLastLoadedObject():
             return obj
     return None
 
-#Loads a specified xml file
-#DevNote: current system is not ideal, consider an OO approach
-def loadXML(filepath):
-    xmlHandle = ET.parse(filepath)
-    xmlRoot = xmlHandle.getroot()
-    isXMLLoaded = True
-
 #Adjusts the SceneCamera via the given parameters. Focal length is in mm
-def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0, 0.0, 0.0)):
+def configureCamera(focalLength, position = (0.0, 0.0, 0.0), orientation = (0.0, 0.0, 0.0), inDegrees = True):
+    if inDegrees:
+        orientation = deg2rad(orientation)
     SceneCamera.lens = focalLength
-    SceneCameraObject.location = position
-    SceneCameraObject.rotation_euler = deg2rad(orientation)
+    SceneCameraObject.location = mathutils.Vector(position)
+    SceneCameraObject.rotation_euler = orientation
 
 #Adjusts the SceneCamera based on supplied K and R matrices, and a T vector
 def configureCameraFromMatrix(K, RT):
@@ -156,64 +155,26 @@ def loadModel(path, name, position = (0.0, 0.0, 0.0), orientation = [0.0, 0.0, 0
 
     return lastObject
 
-#Loads all models from the 'object' tag of the loaded XML document
-def loadModelsFromXML():
-    if not isXMLLoaded:
-        print("Warning! No XML file has been loaded! Please make a call to loadXML() first!")
-        return
-
-    for obj in xmlRoot.iter('object'):
-        name = obj.get('name')
-        path = obj.get('path')
-        x = float(obj.find('x').text)
-        y = float(obj.find('y').text)
-        z = float(obj.find('z').text)
-
-        loadModel(path, name, (x, y, z))
-
-#Renders images from the 'camera' tags of the loaded XML document
-def renderImagesFromXML():
-    if not isXMLLoaded:
-        print("Warning! No XML file has been loaded! Please make a call to loadXML() first!")
-        return
-
-    outPath = xmlRoot.find('output_destination').get('directory')
-
-    for camView in xmlRoot.iter('camera'):
-        name = camView.get('name')
-        focalLength = float(camView.text)
-
-        configureCamera(focalLength)
-
-        renderImage(outPath + '/{}.png'.format(name))
-
-#Resets all views to a global view; supposedly fixes black screen issues
-def correctLocalView():
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            space = area.spaces[0]
-            if space.local_view: #check if using local view
-                for region in area.regions:
-                    if region.type == 'WINDOW':
-                        override = {'area': area, 'region': region} #override context
-                        bpy.ops.view3d.localview(override) #switch to global view
+#Converts
+def QuaternionVectorToRotationMatrix(quaternion = (0.0, 0.0, 0.0, 0.0)):
+    return mathutils.Quaternion(quaternion).to_matrix()
 
 #Converts a rotation matrix to a quaternion
 def RotationMatrixToQuaternion(matrix):
     return matrix.to_quaternion()
 
 #Converts a rotation matrix to an euler vector
-def RotationMatrixToEulerVector(matrix):
+def RotationMatrixToEuler(matrix):
     return matrix.to_euler()
 
 #Converts a vector of (euler) angles into a rotation matrix
-def EulerVectorToRotationMatrix(orientation = (0.0, 0.0, 0.0), inDegrees = True):
-    if inDegrees:
-        orientation = deg2rad(orientation)
-
-    mat = mathutils.Euler(orientation, 'XYZ').to_matrix()
-
-    return mat
+def VectorToRotationMatrix(orientation = (0.0, 0.0, 0.0), inDegrees = True):
+    if len(orientation) == 3:
+        if inDegrees:
+            orientation = deg2rad(orientation)
+        return mathutils.Euler(orientation, 'XYZ').to_matrix()
+    elif len(orientation) == 4:
+        return mathutils.Quaternion(orientation).to_matrix()
 
 #Returns the location vector and a rotation Quaternion from an RT matrix
 #The rotation component returned is a Quaternion
@@ -232,7 +193,7 @@ def formatRTMatrix(matrix):
 
 #Creates a Blender matrix object representing an RT matrix out of a position and orientation vector
 def composeRTMatrix(rotation = (0.0, 0.0, 0.0), translation = (0.0, 0.0, 0.0), inDegrees = True):
-    rot = EulerVectorToRotationMatrix(rotation, inDegrees)
+    rot = VectorToRotationMatrix(rotation, inDegrees)
 
     mat = mathutils.Matrix()
     for k in range(3):
@@ -242,12 +203,177 @@ def composeRTMatrix(rotation = (0.0, 0.0, 0.0), translation = (0.0, 0.0, 0.0), i
 
     return mat
 
+#Manipulates a preexisting object
+def manipulateObject(sceneObject, position = None, orientation = None):
+    if type(sceneObject) == str:
+        name = sceneObject
+        if name in SceneData.objects and name in registeredObjects:
+            sceneObject = SceneData.objects[name]
+        else:
+            return False
+    elif type(sceneObject) == bpy_types.Object:
+        name = sceneObject.name
+        if not (name in SceneData.objects and name in registeredObjects):
+            return False
+
+    if position is None:
+        pass
+    elif type(position) == tuple:
+        position = mathutils.Vector(position)
+        sceneObject.location = positionOffsets[name] + position
+    elif type(position) == Vector:
+        sceneObject.location = positionOffsets[name] + position
+
+    if not orientation is None:
+        sceneObject.rotation_euler = deg2rad(orientation)
+
+    return True
+
+#Loads models from an xml file into the scene
+def parseSceneXML(filepath):
+    xmlHandle = ET.parse(filepath)
+    xmlRoot = xmlHandle.getroot()
+
+    for obj in xmlRoot.iter('object'):
+        name = obj.get('name')
+
+        position = (float(obj.find('xpos').text), float(obj.find('ypos').text), float(obj.find('zpos').text))
+        orientation = (float(obj.find('xrot').text), float(obj.find('yrot').text), float(obj.find('zrot').text))
+
+        inDegrees = False if obj.get('unit') == 'rad' else True
+
+        path = wapi.getPathToModelByType(obj.get('type'))
+
+        if not path is None:
+            loadModel(path, name, position, orientation, inDegrees)
+
+#Renders camera views of the scene from an xml file
+def parseCameraXML(filepath, directory = ''):
+    xmlHandle = ET.parse(filepath)
+    xmlRoot = xmlHandle.getroot()
+
+    #Race condition here
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+
+    for view in xmlRoot.iter('view'):
+        name = view.get('name')
+
+        focal = float(view.get('focal'))
+
+        rotType = view.get('type')
+
+        if rotType == 'matrix':
+            rawMat = [[float(view.find('r1c1').text), float(view.find('r1c2').text), float(view.find('r1c3').text), float(view.find('r1c4').text)],
+                      [float(view.find('r2c1').text), float(view.find('r2c2').text), float(view.find('r2c3').text), float(view.find('r2c4').text)],
+                      [float(view.find('r3c1').text), float(view.find('r3c2').text), float(view.find('r3c3').text), float(view.find('r3c4').text)]]
+            rotMat = formatRTMatrix(rawMat)
+        elif rotType == 'euler':
+            rotVec = (float(view.find('xrot').text), float(view.find('yrot').text), float(view.find('zrot').text))
+            posVec = (float(view.find('xpos').text), float(view.find('ypos').text), float(view.find('zpos').text))
+            inDegrees = False if view.find('unit').text == 'rad' else True
+            rotMat = composeRTMatrix(rotVec, posVec, inDegrees)
+        elif rotType == 'quaternion':
+            rotVec = (float(view.find('wrot').text), float(view.find('xrot').text), float(view.find('yrot').text), float(view.find('zrot').text))
+            posVec = (float(view.find('xpos').text), float(view.find('ypos').text), float(view.find('zpos').text))
+            rotMat = composeRTMatrix(rotVec, posVec)
+
+        renderImageFromMatrix(os.path.join(directory, '{}.png'.format(name)), [[focal]], rotMat)
+
+#Loads models from a json file into the scene
+def parseSceneJSON(filepath):
+    scene = {}
+    with open(filepath, 'r') as f:
+        scene = json.loads(f.read())
+
+    for name in scene:
+        path = wapi.getPathToModelByType(scene[name]['type'])
+
+        if not path is None:
+            loadModel(path, name, scene[name]['pos'], scene[name]['rot'], scene[name]['deg'])
+
+#Renders camera views of the scene from a json file
+def parseCameraJSON(filepath, directory = ''):
+    cameras = {}
+    with open(filepath, 'r') as f:
+        cameras = json.loads(f.read())
+
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+
+    for name in cameras:
+        rotType = cameras[name]['type']
+        if rotType == 'matrix':
+            rotMat = formatRTMatrix(cameras[name]['matrix'])
+        elif rotType == 'euler':
+            rotMat = composeRTMatrix(cameras[name]['rot'], cameras[name]['pos'], cameras[name]['deg'])
+        elif rotType == 'quaternion':
+            rotMat = composeRTMatrix(cameras[name]['rot'], cameras[name]['pos'])
+
+        renderImageFromMatrix(os.path.join(directory, '{}.png'.format(name)), [[cameras[name]['focal']]], rotMat)
+
+#Converts an xml scene layout into a json scene layout
+def convertSceneXMLToJSON(filepath):
+    xmlHandle = ET.parse(filepath)
+    xmlRoot = xmlHandle.getroot()
+
+    newPath = filepath.replace('.xml', '.json')
+
+    scene = {}
+
+    for obj in xmlRoot.iter('object'):
+        name = obj.get('name')
+
+        scene[name] = {}
+
+        scene[name]['pos'] = (float(obj.find('xpos').text), float(obj.find('ypos').text), float(obj.find('zpos').text))
+        scene[name]['rot'] = (float(obj.find('xrot').text), float(obj.find('yrot').text), float(obj.find('zrot').text))
+        scene[name]['type'] = obj.get('type')
+        scene[name]['deg'] = False if obj.get('unit') == 'rad' else True
+
+    with open(newPath, 'w+') as f:
+        f.write(json.dumps(scene))
+
+#Converts xml camera data into json camera data
+def convertCameraXMLToJSON(filepath):
+    xmlHandle = ET.parse(filepath)
+    xmlRoot = xmlHandle.getroot()
+
+    newPath = filepath.replace('.xml', '.json')
+
+    cameras = {}
+
+    for view in xmlRoot.iter('view'):
+        name = view.get('name')
+
+        cameras[name] = {}
+
+        rotType = view.get('type')
+
+        cameras[name]['focal'] = float(view.get('focal'))
+        cameras[name]['type'] = view.get('type')
+
+        if rotType == 'matrix':
+            cameras[name]['matrix'] = [[float(view.find('r1c1').text), float(view.find('r1c2').text), float(view.find('r1c3').text), float(view.find('r1c4').text)],
+                                       [float(view.find('r2c1').text), float(view.find('r2c2').text), float(view.find('r2c3').text), float(view.find('r2c4').text)],
+                                       [float(view.find('r3c1').text), float(view.find('r3c2').text), float(view.find('r3c3').text), float(view.find('r3c4').text)]]
+        elif rotType == 'euler':
+            cameras[name]['rot'] = (float(view.find('xrot').text), float(view.find('yrot').text), float(view.find('zrot').text))
+            cameras[name]['pos'] = (float(view.find('xpos').text), float(view.find('ypos').text), float(view.find('zpos').text))
+            cameras[name]['deg'] = False if view.find('unit').text == 'rad' else True
+        elif rotType == 'quaternion':
+            cameras[name]['rot'] = (float(view.find('wrot').text), float(view.find('xrot').text), float(view.find('yrot').text), float(view.find('zrot').text))
+            cameras[name]['pos'] = (float(view.find('xpos').text), float(view.find('ypos').text), float(view.find('zpos').text))
+
+    with open(newPath, 'w+') as f:
+        f.write(json.dumps(cameras))
+
 def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-x', '--xml', action='store', default='')
-    group.add_argument('-m', '--model', action='store', default='')
-    parser.add_argument('-d', '--directory', action='store', default='')
+    group.add_argument('-j', '--json', action='store', default='')
+    parser.add_argument('-d', '--output_directory', action='store', default='')
 
 if __name__ == '__main__':
     main()

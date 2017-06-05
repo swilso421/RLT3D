@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<scene>
+	<object name="Chair" type="dining chair" unit="rad">
+		<xpos>0.0</xpos>
+		<ypos>0.5</ypos>
+		<zpos>0.0</zpos>
+		<xrot>0.0</xrot>
+		<yrot>0.0</yrot>
+		<zrot>0.0</zrot>
+	</object>
+	<object name="Table" type="dining table" unit="deg">
+		<xpos>0.0</xpos>
+		<ypos>0.0</ypos>
+		<zpos>0.0</zpos>
+		<xrot>0.0</xrot>
+		<yrot>0.0</yrot>
+		<zrot>90.0</zrot>
+	</object>
+</scene>
