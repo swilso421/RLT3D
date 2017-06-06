@@ -313,11 +313,11 @@ def parseCameraJSON(filepath, directory = ''):
         renderImageFromMatrix(os.path.join(directory, '{}.png'.format(name)), [[cameras[name]['focal']]], rotMat)
 
 #Converts an xml scene layout into a json scene layout
-def convertSceneXMLToJSON(filepath):
+def convertSceneXMLToJSON(filepath, newPath = None):
     xmlHandle = ET.parse(filepath)
     xmlRoot = xmlHandle.getroot()
 
-    newPath = filepath.replace('.xml', '.json')
+    newPath = filepath.replace('.xml', '.json') if newPath is None else newPath
 
     scene = {}
 
@@ -335,11 +335,11 @@ def convertSceneXMLToJSON(filepath):
         f.write(json.dumps(scene))
 
 #Converts xml camera data into json camera data
-def convertCameraXMLToJSON(filepath):
+def convertCameraXMLToJSON(filepath, newPath = None):
     xmlHandle = ET.parse(filepath)
     xmlRoot = xmlHandle.getroot()
 
-    newPath = filepath.replace('.xml', '.json')
+    newPath = filepath.replace('.xml', '.json') if newPath is None else newPath
 
     cameras = {}
 
@@ -368,12 +368,152 @@ def convertCameraXMLToJSON(filepath):
     with open(newPath, 'w+') as f:
         f.write(json.dumps(cameras))
 
+#Converts a json scene layout into an xml scene layout
+def convertSceneJSONToXML(filepath, newPath = None):
+    newTree = ET.ElementTree()
+    root = ET.Element('scene')
+    newTree._setroot(root)
+
+    newPath = filepath.replace('.json', '.xml') if newPath is None else newPath
+
+    scene = {}
+    with open(filepath, 'r') as f:
+        scene = json.loads(f.read())
+
+    for name in scene:
+        obj = ET.SubElement(root, 'object')
+
+        obj.set('name', name)
+        obj.set('type', scene[name]['type'])
+
+        if scene[name]['deg']:
+            obj.set('unit', 'deg')
+        else:
+            obj.set('unit', 'rad')
+
+        xpos = ET.SubElement(obj, 'xpos')
+        ypos = ET.SubElement(obj, 'ypos')
+        zpos = ET.SubElement(obj, 'zpos')
+        xrot = ET.SubElement(obj, 'xrot')
+        yrot = ET.SubElement(obj, 'yrot')
+        zrot = ET.SubElement(obj, 'zrot')
+
+        xpos.text = str(scene[name]['pos'][0])
+        ypos.text = str(scene[name]['pos'][1])
+        zpos.text = str(scene[name]['pos'][2])
+        xrot.text = str(scene[name]['rot'][0])
+        yrot.text = str(scene[name]['rot'][1])
+        zrot.text = str(scene[name]['rot'][2])
+
+    newTree.write(newPath)
+
+#Converts json camera data into xml camera data
+def convertCameraJSONToXML(filepath, newPath = None):
+    newTree = ET.ElementTree()
+    root = ET.Element('camera_views')
+    newTree._setroot(root)
+
+    newPath = filepath.replace('.json', '.xml') if newPath is None else newPath
+
+    cameras = {}
+    with open(filepath, 'r') as f:
+        cameras = json.loads(f.read())
+
+    for name in cameras:
+        view = ET.SubElement(root, 'view')
+
+        rotType = cameras[name]['type']
+
+        view.set('name', name)
+        view.set('type', rotType)
+        view.set('focal', str(cameras[name]['focal']))
+
+        if rotType == 'matrix':
+            r1c1 = ET.SubElement(view, 'r1c1')
+            r1c2 = ET.SubElement(view, 'r1c2')
+            r1c3 = ET.SubElement(view, 'r1c3')
+            r1c4 = ET.SubElement(view, 'r1c4')
+            r2c1 = ET.SubElement(view, 'r2c1')
+            r2c2 = ET.SubElement(view, 'r2c2')
+            r2c3 = ET.SubElement(view, 'r2c3')
+            r2c4 = ET.SubElement(view, 'r2c4')
+            r3c1 = ET.SubElement(view, 'r3c1')
+            r3c2 = ET.SubElement(view, 'r3c2')
+            r3c3 = ET.SubElement(view, 'r3c3')
+            r3c4 = ET.SubElement(view, 'r3c4')
+
+            r1c1.text = str(cameras[name]['matrix'][0][0])
+            r1c2.text = str(cameras[name]['matrix'][0][1])
+            r1c3.text = str(cameras[name]['matrix'][0][2])
+            r1c4.text = str(cameras[name]['matrix'][0][3])
+            r2c1.text = str(cameras[name]['matrix'][1][0])
+            r2c2.text = str(cameras[name]['matrix'][1][1])
+            r2c3.text = str(cameras[name]['matrix'][1][2])
+            r2c4.text = str(cameras[name]['matrix'][1][3])
+            r3c1.text = str(cameras[name]['matrix'][2][0])
+            r3c2.text = str(cameras[name]['matrix'][2][1])
+            r3c3.text = str(cameras[name]['matrix'][2][2])
+            r3c4.text = str(cameras[name]['matrix'][2][3])
+        elif rotType == 'euler':
+            unit = ET.SubElement(view, 'unit')
+            xpos = ET.SubElement(view, 'xpos')
+            ypos = ET.SubElement(view, 'ypos')
+            zpos = ET.SubElement(view, 'zpos')
+            xrot = ET.SubElement(view, 'xrot')
+            yrot = ET.SubElement(view, 'yrot')
+            zrot = ET.SubElement(view, 'zrot')
+
+            unit.text = 'deg' if cameras[name]['deg'] else 'rad'
+
+            xpos.text = str(cameras[name]['pos'][0])
+            ypos.text = str(cameras[name]['pos'][1])
+            zpos.text = str(cameras[name]['pos'][2])
+            xrot.text = str(cameras[name]['rot'][0])
+            yrot.text = str(cameras[name]['rot'][1])
+            zrot.text = str(cameras[name]['rot'][2])
+        elif rotType == 'quaternion':
+            xpos = ET.SubElement(view, 'xpos')
+            ypos = ET.SubElement(view, 'ypos')
+            zpos = ET.SubElement(view, 'zpos')
+            wrot = ET.SubElement(view, 'wrot')
+            xrot = ET.SubElement(view, 'xrot')
+            yrot = ET.SubElement(view, 'yrot')
+            zrot = ET.SubElement(view, 'zrot')
+
+            xpos.text = str(cameras[name]['pos'][0])
+            ypos.text = str(cameras[name]['pos'][1])
+            zpos.text = str(cameras[name]['pos'][2])
+            wrot.text = str(cameras[name]['rot'][0])
+            xrot.text = str(cameras[name]['rot'][1])
+            yrot.text = str(cameras[name]['rot'][2])
+            zrot.text = str(cameras[name]['rot'][3])
+
+    newTree.write(newPath)
+
 def main():
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-x', '--xml', action='store', default='')
-    group.add_argument('-j', '--json', action='store', default='')
-    parser.add_argument('-d', '--output_directory', action='store', default='')
+    parser.add_argument('scene_layout', action='store', default='', help='A JSON or XML file containing the layout data of the scene')
+    parser.add_argument('camera_views', action='store', default='', help='A JSON or XML file containing camera view data for to be rendered')
+    parser.add_argument('-d', '--output_directory', action='store', default='RenderedImages', help='The output directory to store the rendered images', required=False)
+
+    args = parser.parse_args()
+
+    if args.scene_layout.endswith('.xml'):
+        loadScene = parseSceneXML
+    elif args.scene_layout.endswith('.json'):
+        loadScene = parseSceneJSON
+    else:
+        raise TypeError('scene_layout must be a JSON or XML file!')
+
+    if args.camera_views.endswith('.xml'):
+        renderScene = parseCameraXML
+    elif args.camera_views.endswith('.json'):
+        renderScene = parseCameraJSON
+    else:
+       raise TypeError('camera_views must be a JSON or XML file!')
+
+    loadScene(args.scene_layout)
+    renderScene(args.camera_views, args.output_directory)
 
 if __name__ == '__main__':
     main()

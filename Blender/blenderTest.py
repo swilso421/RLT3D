@@ -25,9 +25,12 @@ import SceneBuilderAPI as sbapi
 sbapi.convertSceneXMLToJSON('sample_scene_layout.xml')
 sbapi.convertCameraXMLToJSON('sample_camera_views.xml')
 
-sbapi.parseSceneJSON('sample_scene_layout.json')
+sbapi.convertSceneJSONToXML('sample_scene_layout.json', 'scene_test.xml')
+sbapi.convertCameraJSONToXML('sample_camera_views.json', 'cam_test.xml')
 
-sbapi.parseCameraJSON('sample_camera_views.json', 'images')
+sbapi.parseSceneXML('scene_test.xml')
+
+sbapi.parseCameraXML('cam_test.xml', 'images')
 #Renders images from the default camera position and orientaion
 sbapi.renderImage('iso.png')
 
