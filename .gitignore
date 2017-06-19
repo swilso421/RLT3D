@@ -1,0 +1,9 @@
+**.png
+**.jpg
+**.cfg
+**.weights
+**.fbx
+Blender/cfg/**
+Blender/summary/**
+Blender/weights/**
+**.pyc

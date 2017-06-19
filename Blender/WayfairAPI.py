@@ -147,8 +147,11 @@ def databaseGetBySKU(sku):
     return info
 
 #Returns a list of SKU's that belong to the specified class
-def databaseGetByClassID(classID):
-    cursor.execute('''SELECT SKU FROM Models WHERE ClassID = ?''', (classID,))
+def databaseGetByClassID(classID, getOnlyDownloaded = True):
+    if getOnlyDownloaded:
+        cursor.execute('''SELECT SKU FROM Models WHERE ClassID = ? AND Path IS NOT NULL''', (classID,))
+    else:
+        cursor.execute('''SELECT SKU FROM Models WHERE ClassID = ?''', (classID,))
     return [item for sublist in cursor.fetchall() for item in sublist]
 
 #This sets all of the paths in table Models to null. Useful when switching machines
@@ -324,7 +327,7 @@ def main():
 def initialize():
     global database
     global cursor
-    database = sqlite3.connect('database')
+    database = sqlite3.connect('data/database')
     cursor = database.cursor()
 
 if __name__ == '__main__':

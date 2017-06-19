@@ -28,11 +28,15 @@ sbapi.convertCameraXMLToJSON('sample_camera_views.xml')
 sbapi.convertSceneJSONToXML('sample_scene_layout.json', 'scene_test.xml')
 sbapi.convertCameraJSONToXML('sample_camera_views.json', 'cam_test.xml')
 
+
+
 sbapi.parseSceneXML('scene_test.xml')
+
+sbapi.renderImage('iso.png')
 
 sbapi.parseCameraXML('cam_test.xml', 'images')
 #Renders images from the default camera position and orientaion
-sbapi.renderImage('iso.png')
+
 
 #Demonstration of rendering images from K and RT matrices. Here the RT matrices were generated from Euler vectors for my own readability
 #sbapi.renderImageFromMatrix('z.png', [[50]], sbapi.composeRTMatrix((0, 0, 0), (0, 0, 25)))

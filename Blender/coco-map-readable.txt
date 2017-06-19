@@ -1,0 +1,108 @@
+COCO Label: pottedplant
+	WayfairClasses:
+		faux florals: 48
+		faux plants and trees: 15
+		planters: 35
+		vases: 72
+
+COCO Label: fork
+	WayfairClasses:
+		flatware sets: 1
+		dinnerware sets & place settings: 4
+
+COCO Label: cup
+	WayfairClasses:
+		mugs & teacups: 4
+		glassware & barware: 14
+
+COCO Label: umbrella
+	WayfairClasses:
+		patio umbrellas: 12
+
+COCO Label: suitcase
+	WayfairClasses:
+		trunks: 19
+
+COCO Label: spoon
+	WayfairClasses:
+		flatware sets: 1
+		dinnerware sets & place settings: 4
+
+COCO Label: sofa
+	WayfairClasses:
+		patio sofas: 12
+		sofas: 327
+		patio chaise lounges: 30
+		indoor chaise lounges: 29
+
+COCO Label: vase
+	WayfairClasses:
+		vases: 72
+
+COCO Label: bottle
+	WayfairClasses:
+		glassware & barware: 14
+
+COCO Label: knife
+	WayfairClasses:
+		flatware sets: 1
+		dinnerware sets & place settings: 4
+
+COCO Label: chair
+	WayfairClasses:
+		reception seating chairs: 21
+		patio dining chairs: 59
+		patio lounge chairs: 16
+		adirondack chairs: 12
+		accent chairs: 494
+		dining chairs: 514
+		office chairs: 45
+		kids chairs: 1
+		bar stools: 455
+		accent stools: 122
+		patio bar stools: 19
+		patio chaise lounges: 30
+		indoor chaise lounges: 29
+
+COCO Label: bench
+	WayfairClasses:
+		patio benches: 46
+		benches: 280
+
+COCO Label: diningtable
+	WayfairClasses:
+		patio tables: 112
+		sofa & console tables: 334
+		end tables: 964
+		coffee & cocktail tables: 424
+		kids tables and sets: 5
+		dining tables: 296
+		pub/bar tables & sets: 71
+
+COCO Label: wine glass
+	WayfairClasses:
+		glassware & barware: 14
+		wine and champagne glasses: 7
+
+COCO Label: oven
+	WayfairClasses:
+		dutch ovens & braisers: 1
+
+COCO Label: bowl
+	WayfairClasses:
+		decorative plates & bowls: 11
+		serving bowls: 10
+		dining bowls: 3
+
+COCO Label: bed
+	WayfairClasses:
+		kids beds: 21
+		bed frames and accessories: 7
+		beds: 287
+		daybeds, guest beds & folding beds: 21
+
+COCO Label: clock
+	WayfairClasses:
+		mantel & tabletop clocks: 5
+		wall clocks: 75
+

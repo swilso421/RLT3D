@@ -18,6 +18,7 @@ SceneData = bpy.data
 SceneContext = bpy.context
 SceneCamera = SceneData.cameras['Camera']
 SceneCameraObject = SceneData.objects['Camera']
+SceneData.objects['Lamp'].data = SceneData.lamps.new(name='Hemi', type='HEMI')
 
 #XML globals; for loading and rendering from an XML file
 xmlHandle = None
@@ -112,6 +113,10 @@ def clearScene():
     removeTargets.remove('Camera')
     removeTargets.remove('Lamp')
     removeObjects(removeTargets)
+    
+def useLighting(boolean):
+    for item in SceneData.materials:
+        item.use_shadeless = not boolean
 
 #Loads a model from a file and gives it the specified name. Optionally accepts a vector for position
 #DevNote: have name autofilled with regex; add orientation
@@ -489,6 +494,48 @@ def convertCameraJSONToXML(filepath, newPath = None):
             zrot.text = str(cameras[name]['rot'][3])
 
     newTree.write(newPath)
+
+def generateArcballCameraXML(filepath, distance, focalLengthMM, orbitalStep, orbitalStart = 0, orbitalEnd = 360, elevationStep = 30, elevationStart = 0, elevationEnd = 0, positionOffset = (0.0, 0.0, 0.0)):
+
+    if elevationEnd > 90: elevationEnd = 90
+    if elevationStart < -90: elevationStart = -90
+
+    eRange = range(elevationStart, elevationEnd, elevationStep)
+    oRange = range(orbitalStart, orbitalEnd, orbitalStep)
+    
+    newTree = ET.ElementTree()
+    root = ET.Element('camera_views')
+    newTree._setroot(root)
+    
+    for elev in eRange:
+        for orb in oRange:
+            
+            radius = distance * cos(radians(elev))
+            height = distance * sin(radians(elev))
+            
+            view = ET.SubElement(root, 'view')
+
+            view.set('name', 'elev:{};orb:{};'.format(elev, orb))
+            view.set('type', 'euler')
+            view.set('focal', str(focalLengthMM))
+            
+            unit = ET.SubElement(view, 'unit')
+            xpos = ET.SubElement(view, 'xpos')
+            ypos = ET.SubElement(view, 'ypos')
+            zpos = ET.SubElement(view, 'zpos')
+            xrot = ET.SubElement(view, 'xrot')
+            yrot = ET.SubElement(view, 'yrot')
+            zrot = ET.SubElement(view, 'zrot')
+
+            unit.text = 'deg'
+            xpos.text = str(positionOffset[0] + cos(radians(elev)) * distance * sin(radians(orb)))
+            ypos.text = str(positionOffset[1] + cos(radians(elev)) * -distance * cos(radians(orb)))
+            zpos.text = str(positionOffset[2] + height)
+            xrot.text = str(90 - elev)
+            yrot.text = str(0)
+            zrot.text = str(orb)
+            
+    newTree.write(filepath)
 
 def main():
     parser = argparse.ArgumentParser()
